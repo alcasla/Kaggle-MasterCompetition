@@ -1,6 +1,6 @@
 #data reading
-accidentesTra = read.csv2("./data/accidentes-tra-mice_full_m4.csv", sep=";", dec=",")
-accidentesTst = read.csv2("./data/accidentes-tst-mice_full_m4.csv", sep=";", dec=",")
+accidentesTra = read.csv2("./data/accidentes-tra-transformed.csv", sep=";", dec=",")
+accidentesTst = read.csv2("./data/accidentes-tst-transformed.csv", sep=";", dec=",")
 accidentesTra[,1]=NULL; accidentesTst[,1]=NULL;
 
 ###############
@@ -9,7 +9,6 @@ levels(accidentesTst$MEDIDAS_ESPECIALES) <- levels(accidentesTra$MEDIDAS_ESPECIA
 ###############
 
 ##### 5-kfold cross validation #####
-accidentesTra = accidentesTra.outliers
 # Make sure to respect the class imbalance in the folds. Separate each class
 class1 <- (1:dim(accidentesTra)[1])[accidentesTra$TIPO_ACCIDENTE=="Colision_Vehiculos"]
 class2 <- (1:dim(accidentesTra)[1])[accidentesTra$TIPO_ACCIDENTE=="Salida_Via"]
@@ -32,7 +31,7 @@ CVperm <- rbind(CVperm_c1, CVperm_c2, CVperm_c3, CVperm_c4, CVperm_c5, CVperm_c6
 ################## MODELOS TRAIN ############################
 require(randomForest)
 ### PARAMS: change dataset value and RandomForest class formula, also algorithm params
-dataset = accidentesTra     #unify use values
+dataset = accidentesTraFS     #unify use values
 prediction = NULL;
 for(i in 1:5){     #Cross Validation 5kfold - for each col classify and insert into an object
   subsetTra = dataset[-CVperm[,i],]
@@ -44,12 +43,15 @@ for(i in 1:5){     #Cross Validation 5kfold - for each col classify and insert i
 }
 #Accuracy - percentage of success
 1-length(which(!(as.numeric(accidentesTra$TIPO_ACCIDENTE[as.vector(CVperm)])==prediction)))/length(prediction)
-        #0.8283192 best - MICE and nTree=50
-
+        #0.8283192 MICE and nTree=50
+        #0.8809595 FeatSel -c(1,7,28,9) and nTree=50
+        #0.8683325 FeatSel -c(1,7,28,9,2,19) and nTree=50 **Best Test**
+        #0.8638014 FeatSel -c(1,7,28,9,2,19,25,10) and nTree=50
+  
 
 
 ################## MODELOS TEST ############################
-####### M1 - Random Forest ##########
+####### Random Forest 1.0 ##########
 require(randomForest)
 rfModel = randomForest::randomForest(TIPO_ACCIDENTE ~ ., data=accidentesTra, ntree=50)
 randomForest::importance(rfModel)
@@ -57,7 +59,7 @@ plot(rfModel)     #each class label mean error
 
 prediction = predict(rfModel, newdata=accidentesTst)
 
-####### M2 - Random Forest ##########
+####### Random Forest 2.0 ##########
 require(randomForest)
 rfModel = randomForest::randomForest(TIPO_ACCIDENTE ~ ., data=accidentesTra, ntree=80)
 randomForest::importance(rfModel)
@@ -65,8 +67,52 @@ plot(rfModel)     #each class label mean error
 
 prediction = predict(rfModel, newdata=accidentesTst)
 
+####### Random Forest 4.1 - 4.2 - 4.3 ##########
+require(randomForest)
+rfModel = randomForest::randomForest(TIPO_ACCIDENTE ~ ., data=accidentesTraFS, ntree=50)
+randomForest::importance(rfModel)
+plot(rfModel)     #each class label mean error
+
+prediction = predict(rfModel, newdata=accidentesTstFS)
+
+####### XGBoost 1.0 ##########
+require(xgboost)
+require(data.table)   #data reading
+require(magrittr)     #operation functions
+train = fread('./data/accidentes-tra-fs6.csv', header=T, stringsAsFactors=T)
+test = fread('./data/accidentes-tst-fs6.csv', header=T, stringsAsFactors=T)
+train$V1=NULL; test$V1=NULL
+
+testLabels = levels(train$TIPO_ACCIDENTE)         #class labels
+y = as.numeric(factor(train$TIPO_ACCIDENTE))-1    #class column as numbers
+train$TIPO_ACCIDENTE = NULL                       #delete class column from data structure
+
+trainMatrix = apply(train, 2, function(x) as.numeric(factor(x)))  #trin as matrix
+testMatrix = apply(test, 2, function(x) as.numeric(factor(x)))    #test as matrix
+
+numberOfClasses <- max(y)+1
+param <- list("objective" = "multi:softmax",
+              "eval_metric" = "merror",
+              "num_class" = numberOfClasses)
+cv.nround <- 30
+cv.nfold <- 5
+#training with Cross Validation
+xgbst.cv = xgb.cv(param=param, data=trainMatrix, label=y, nfold=cv.nfold, nrounds=cv.nround)
+
+#train + test
+xgbModel = xgboost(param=param, data = trainMatrix, label = y, nrounds = cv.nround)
+prediction = predict(xgbModel, testMatrix)
+
+#parse back to character class labels 
+prediction[which(prediction==0)] = testLabels[1]
+prediction[which(prediction==1)] = testLabels[2]
+prediction[which(prediction==2)] = testLabels[3]
+prediction[which(prediction==3)] = testLabels[4]
+prediction[which(prediction==4)] = testLabels[5]
+prediction[which(prediction==5)] = testLabels[6]
+
 
 
 ######## Code submission ##########
 submission = data.frame(Id=c(1:length(prediction)), Prediction=prediction, row.names=NULL)
-write.table(submission, "./submit/m2-rf.csv", row.names=FALSE, quote=FALSE, sep=",")
+write.table(submission, "./submit/m4-xgb1.1.csv", row.names=FALSE, quote=FALSE, sep=",")
