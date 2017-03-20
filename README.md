@@ -1,18 +1,21 @@
-# Kaggle competition 
-for [Data Science Master](http://masteres.ugr.es/datcom/) from Granada University
+# Kaggle competition
+## Specialised in data preprocessing
+[Data Science Master](http://masteres.ugr.es/datcom/) from Granada University
 ## 
 
-Desarrollado por el alumno [Alberto Castillo Lamas](https://www.linkedin.com/in/alberto-castillo-lamas-25aa3ab2).
+Code developed by [Alberto Castillo Lamas](https://www.linkedin.com/in/alberto-castillo-lamas-25aa3ab2).
 
-Mi [perfil](https://github.com/alcasla) de Github.
+I had developed the code using differents dataset versions(in **data** folder), the sequence dureng the development is:
+* **Data analisys** 
+* **Imputation for Missing Values**
+* **Transformation**
+* **Outliers detection**
+* **Discretization**
+* **Feature selection**
+* **Prediction models**
 
-Proyecto desarrollado para la asignatura Cloud Computin impartida por el profesor [Juan Julián Merelo Guervós](https://github.com/JJ) en el Master de Ingeniería Informática perteneciente a la Universidad de Granada.
 
-[![Build Status](https://travis-ci.org/alcasla/ProyectoCloudComputing.svg?branch=master)](https://travis-ci.org/alcasla/ProyectoCloudComputing)
-
-[![Heroku](https://www.herokucdn.com/deploy/button.png)](http://usermanagerproject.herokuapp.com/)
-
-
+#Remove
 ### Documentación
 
 Información disponible acerca del proyecto, durante todo el proceso de desarrollo y su implementación.

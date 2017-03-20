@@ -17,6 +17,8 @@ accidentesTra.prep[,8:12] = transformedValues
 #show changes
 summary(accidentesTra[,8:12])
 summary(accidentesTra.prep[,8:12])
+  #There are a problem because sd and mean is close to zero due to features distribution and the scale 
+    #won´t work properly, anyway I only want apply this methods and I´m interested on remove  nothing yet
 
 
 #Process test data
