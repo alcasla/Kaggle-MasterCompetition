@@ -17,5 +17,5 @@ accidentesTraFS = accidentesTra[,-c(1,7,28,9,2,19)]
 accidentesTstFS = accidentesTst[,-c(1,7,28,9,2,19)]
 
 #save data processed
-write.csv2(accidentesTraFS, "./data/accidentes-tra-fs6.csv")  #save training data
-write.csv2(accidentesTstFS, "./data/accidentes-tst-fs6.csv")  #save test data
+write.csv2(accidentesTraFS, "./data/accidentes-tra-fs6.csv", row.names=F)  #save training data
+write.csv2(accidentesTstFS, "./data/accidentes-tst-fs6.csv", row.names=F)  #save test data

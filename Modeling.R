@@ -111,8 +111,18 @@ prediction[which(prediction==3)] = testLabels[4]
 prediction[which(prediction==4)] = testLabels[5]
 prediction[which(prediction==5)] = testLabels[6]
 
+####### Random Forest 5.0 ##########
+accidentesTra = read.csv2("./data/accidentes-tra-8NAs.csv", sep=";", dec=",")
+accidentesTst = read.csv2("./data/accidentes-tst-transformed.csv", sep=";", dec=",")
+require(randomForest)
+rfModel = randomForest::randomForest(TIPO_ACCIDENTE ~ ., data=accidentesTra, ntree=50)
+randomForest::importance(rfModel)
+plot(rfModel)     #each class label mean error
+
+prediction = predict(rfModel, newdata=accidentesTst)
+
 
 
 ######## Code submission ##########
 submission = data.frame(Id=c(1:length(prediction)), Prediction=prediction, row.names=NULL)
-write.table(submission, "./submit/m4-xgb1.1.csv", row.names=FALSE, quote=FALSE, sep=",")
+write.table(submission, "./submit/m5-rf5.0.csv", row.names=FALSE, quote=FALSE, sep=",")
