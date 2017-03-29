@@ -75,7 +75,7 @@ plot(rfModel)     #each class label mean error
 
 prediction = predict(rfModel, newdata=accidentesTstFS)
 
-####### XGBoost 1.0 ##########
+################### XGBoost 1.0 ##################
 require(xgboost)
 require(data.table)   #data reading
 require(magrittr)     #operation functions
@@ -110,8 +110,9 @@ prediction[which(prediction==2)] = testLabels[3]
 prediction[which(prediction==3)] = testLabels[4]
 prediction[which(prediction==4)] = testLabels[5]
 prediction[which(prediction==5)] = testLabels[6]
+#______________________________________________________
 
-####### Random Forest 5.0 ##########
+############## Random Forest 5.0 ################
 accidentesTra = read.csv2("./data/accidentes-tra-8NAs.csv", sep=";", dec=",")
 accidentesTst = read.csv2("./data/accidentes-tst-transformed.csv", sep=";", dec=",")
 require(randomForest)
@@ -120,9 +121,21 @@ randomForest::importance(rfModel)
 plot(rfModel)     #each class label mean error
 
 prediction = predict(rfModel, newdata=accidentesTst)
+#________________________________________________
+
+############## Random Forest 6.0 ################
+accidentesTra = read.csv2("./data/accidentes-tra-transfV2.csv", sep=";", dec=",")
+accidentesTst = read.csv2("./data/accidentes-tst-transfV2.csv", sep=";", dec=",")
+require(randomForest)
+rfModel = randomForest::randomForest(tipo_accidente ~ ., data=accidentesTra, ntree=50)
+randomForest::importance(rfModel)
+plot(rfModel)     #each class label mean error
+
+prediction = predict(rfModel, newdata=accidentesTst)
+#________________________________________________0.82671
 
 
 
 ######## Code submission ##########
 submission = data.frame(Id=c(1:length(prediction)), Prediction=prediction, row.names=NULL)
-write.table(submission, "./submit/m5-rf5.0.csv", row.names=FALSE, quote=FALSE, sep=",")
+write.table(submission, "./submit/m6-rf6.0.csv", row.names=FALSE, quote=FALSE, sep=",")
