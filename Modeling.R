@@ -1,21 +1,17 @@
 #data reading
 accidentesTra = read.csv2("./data/accidentes-tra-transformed.csv", sep=";", dec=",")
 accidentesTst = read.csv2("./data/accidentes-tst-transformed.csv", sep=";", dec=",")
-accidentesTra[,1]=NULL; accidentesTst[,1]=NULL;
-
-###############
-levels(accidentesTra$ISLA) <- levels(accidentesTst$ISLA)
-levels(accidentesTst$MEDIDAS_ESPECIALES) <- levels(accidentesTra$MEDIDAS_ESPECIALES)
-###############
 
 ##### 5-kfold cross validation #####
+dataset = train     #unify name
+
 # Make sure to respect the class imbalance in the folds. Separate each class
-class1 <- (1:dim(accidentesTra)[1])[accidentesTra$TIPO_ACCIDENTE=="Colision_Vehiculos"]
-class2 <- (1:dim(accidentesTra)[1])[accidentesTra$TIPO_ACCIDENTE=="Salida_Via"]
-class3 <- (1:dim(accidentesTra)[1])[accidentesTra$TIPO_ACCIDENTE=="Atropello"]
-class4 <- (1:dim(accidentesTra)[1])[accidentesTra$TIPO_ACCIDENTE=="Vuelco"]
-class5 <- (1:dim(accidentesTra)[1])[accidentesTra$TIPO_ACCIDENTE=="Otro"]
-class6 <- (1:dim(accidentesTra)[1])[accidentesTra$TIPO_ACCIDENTE=="Colision_Obstaculo"]
+class1 <- (1:dim(dataset)[1])[dataset$TIPO_ACCIDENTE=="Colision_Vehiculos"]
+class2 <- (1:dim(dataset)[1])[dataset$TIPO_ACCIDENTE=="Salida_Via"]
+class3 <- (1:dim(dataset)[1])[dataset$TIPO_ACCIDENTE=="Atropello"]
+class4 <- (1:dim(dataset)[1])[dataset$TIPO_ACCIDENTE=="Vuelco"]
+class5 <- (1:dim(dataset)[1])[dataset$TIPO_ACCIDENTE=="Otro"]
+class6 <- (1:dim(dataset)[1])[dataset$TIPO_ACCIDENTE=="Colision_Obstaculo"]
 
 #Combine position samples to create matrix 5col-fold
 CVperm_c1 <- matrix(sample(class1,length(class1)), ncol=5, byrow=T)
@@ -31,22 +27,17 @@ CVperm <- rbind(CVperm_c1, CVperm_c2, CVperm_c3, CVperm_c4, CVperm_c5, CVperm_c6
 ################## MODELOS TRAIN ############################
 require(randomForest)
 ### PARAMS: change dataset value and RandomForest class formula, also algorithm params
-dataset = accidentesTraFS     #unify use values
 prediction = NULL;
 for(i in 1:5){     #Cross Validation 5kfold - for each col classify and insert into an object
   subsetTra = dataset[-CVperm[,i],]
   subsetTst = dataset[CVperm[,i],-dim(dataset)[2]]
-  rfModel = randomForest::randomForest(TIPO_ACCIDENTE ~ ., data=dataset, ntree=50)
+  rfModel = randomForest::randomForest(TIPO_ACCIDENTE ~ ., data=subsetTra, ntree=100)
   pred = predict(rfModel, newdata=subsetTst)
   prediction = c(prediction, pred)
-  cat("Iteración:", i)
+  cat("Iteración:", i, "")
 }
 #Accuracy - percentage of success
-1-length(which(!(as.numeric(accidentesTra$TIPO_ACCIDENTE[as.vector(CVperm)])==prediction)))/length(prediction)
-        #0.8283192 MICE and nTree=50
-        #0.8809595 FeatSel -c(1,7,28,9) and nTree=50
-        #0.8683325 FeatSel -c(1,7,28,9,2,19) and nTree=50 **Best Test**
-        #0.8638014 FeatSel -c(1,7,28,9,2,19,25,10) and nTree=50
+1-length(which(!(as.numeric(dataset$TIPO_ACCIDENTE[as.vector(CVperm)])==prediction)))/length(prediction)
   
 
 
@@ -132,10 +123,78 @@ randomForest::importance(rfModel)
 plot(rfModel)     #each class label mean error
 
 prediction = predict(rfModel, newdata=accidentesTst)
-#________________________________________________0.82671
+#________________________________________________ 0.82671 (120 features)
+############## Random Forest 6.1 ################
+#checking datasets from *FEATURE SELECTION - V.2* --- 102 features
+require(randomForest)
+rfModel = randomForest::randomForest(tipo_accidente ~ ., data=datTra102, ntree=50)
+randomForest::importance(rfModel)
+plot(rfModel)     #each class label mean error
+
+prediction = predict(rfModel, newdata=datTst102)
+#________________________________________________ 0.63406
+############## Random Forest 6.2 ################
+#checking datasets from *FEATURE SELECTION - V.2* --- 92 features
+require(randomForest)
+rfModel = randomForest::randomForest(tipo_accidente ~ ., data=datTra92, ntree=50)
+randomForest::importance(rfModel)
+plot(rfModel)     #each class label mean error
+
+prediction = predict(rfModel, newdata=datTst92)
+#________________________________________________ 0.62745
+############## Random Forest 6.3 ################
+#checking datasets from *FEATURE SELECTION - V.2* --- 74 features
+require(randomForest)
+rfModel = randomForest::randomForest(tipo_accidente ~ ., data=datTra74, ntree=50)
+randomForest::importance(rfModel)
+plot(rfModel)     #each class label mean error
+
+prediction = predict(rfModel, newdata=datTst74)
+#________________________________________________ 0.61253
+
+############## Random Forest 7.0 ################
+accidentesTra = read.csv2("./data/accidentes-tra-8NAs.csv", sep=";", dec=",")
+accidentesTst = read.csv2("./data/accidentes-tst-fs6.csv", sep=";", dec=",")
+require(randomForest)
+rfModel = randomForest::randomForest(TIPO_ACCIDENTE ~ ., data=accidentesTra, ntree=100)
+randomForest::importance(rfModel)
+plot(rfModel)     #each class label mean error
+
+prediction = predict(rfModel, newdata=accidentesTst)
+#________________________________________________ 0.82899
+
+################ GBM v0.0 #################
+#data reading
+accidentesTra = read.csv2("./data/accidentes-tra-8NAs.csv", sep=";", dec=",", stringsAsFactors=T)
+accidentesTst = read.csv2("./data/accidentes-tst-fs6.csv", sep=";", dec=",", stringsAsFactors=T)
+
+#structures, labels, train and test matrixs
+labels = accidentesTra$TIPO_ACCIDENTE
+train = as.matrix( accidentesTra[,-dim(accidentesTra)[2]] )
+test = as.matrix( accidentesTst )
+
+require(caret)
+#Control structure to training
+fitControl = caret::trainControl(method="repeatedcv", number=4, repeats=4)
+
+set.seed(123456)
+gbm = caret::train(train, labels, method="gbm", trControl=fitControl, verbose=F)
+prediction = predict(gbm, test)
+#_____________________________________________#
+
+############## Random Forest 8.0 ################
+accidentesTra = read.csv2("./data/accidentes-tra-8NAs.csv", sep=";", dec=",")
+accidentesTst = read.csv2("./data/accidentes-tst-fs6.csv", sep=";", dec=",")
+require(randomForest)
+rfModel = randomForest::randomForest(TIPO_ACCIDENTE ~ ., data=accidentesTra, ntree=100)
+randomForest::importance(rfModel)
+plot(rfModel)     #each class label mean error
+
+prediction = predict(rfModel, newdata=accidentesTst)
+#_____________________________________________#
 
 
 
 ######## Code submission ##########
 submission = data.frame(Id=c(1:length(prediction)), Prediction=prediction, row.names=NULL)
-write.table(submission, "./submit/m6-rf6.0.csv", row.names=FALSE, quote=FALSE, sep=",")
+write.table(submission, "./submit/m10-rf100-Totvic-ZonaAg.csv", row.names=FALSE, quote=FALSE, sep=",")
